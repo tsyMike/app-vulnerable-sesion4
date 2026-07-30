@@ -28,3 +28,12 @@ jobs:
           args: >
             -Dsonar.organization=tsymike
             -Dsonar.projectKey=tsyMike_app-vulnerable-sesion4
+
+  sca:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: snyk/actions/python@master
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
