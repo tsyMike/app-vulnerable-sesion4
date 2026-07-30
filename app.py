@@ -1,23 +1,39 @@
-from flask import Flask, request
+import ast
+import os
 import sqlite3
+from flask import Flask, request
 
 app = Flask(__name__)
-DB_PASSWORD = "admin123"  # Credencial hardcodeada (SAST)
+
+# ✔️ SEGURIDAD: Evitar credenciales hardcodeadas (se lee de variable de entorno)
+DB_PASSWORD = os.environ.get("DB_PASSWORD", "")
+
 
 @app.route("/buscar")
 def buscar():
-    termino = request.args.get("q")
+    termino = request.args.get("q", "")
     conexion = sqlite3.connect("datos.db")
-    # Inyeccion SQL intencional (SAST)
-    consulta = "SELECT * FROM productos WHERE nombre = '" + termino + "'"
-    resultado = conexion.execute(consulta)
-    return str(resultado.fetchall())
+
+    # ✔️ SEGURIDAD: Consulta parametrizada para prevenir inyección SQL (SQLi)
+    consulta = "SELECT * FROM productos WHERE nombre = ?"
+    resultado = conexion.execute(consulta, (termino,))
+
+    datos = resultado.fetchall()
+    conexion.close()
+    return str(datos)
+
 
 @app.route("/calcular")
 def calcular():
-    expresion = request.args.get("expr")
-    # Uso inseguro de eval (SAST)
-    return str(eval(expresion))
+    expresion = request.args.get("expr", "")
+    try:
+        # ✔️ SEGURIDAD: ast.literal_eval previene la ejecución remota de código (RCE)
+        resultado = ast.literal_eval(expresion)
+    except (ValueError, SyntaxError):
+        resultado = "Expresión no válida"
+
+    return str(resultado)
+
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=8080)
